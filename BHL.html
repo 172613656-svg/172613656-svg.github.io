@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 苹果核心适配：全屏+防缩放+无偏移 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, shrink-to-fit=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="极简记账本">
+    <!-- 苹果桌面图标美化 -->
+    <link rel="apple-touch-icon" href="https://img.icons8.com/fluency/180/000000/money-bag.png">
+    <title>极简记账本 - 当月收支</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "微软雅黑", sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+        body {
+            background-color: #f5f7fa;
+            padding: env(safe-area-inset-top) 12px env(safe-area-inset-bottom) 12px;
+            max-width: 800px;
+            margin: 0 auto;
+            color: #111827;
+            min-height: 100vh;
+        }
+        body.dark {
+            background-color: #111827;
+            color: #f9fafb;
+        }
+        .app-container {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.08);
+            padding: 20px 18px;
+            width: 100%;
+        }
+        body.dark .app-container {
+            background: #1f2937;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+        }
+        .page-nav {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .nav-btn {
+            padding: 9px 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            background-color: #e5e7eb;
+            color: #2d3748;
+            flex: 1;
+            min-width: 90px;
+        }
+        body.dark .nav-btn {
+            background-color: #374151;
+            color: #f9fafb;
+        }
+        .nav-btn.active {
+            background-color: #3b82f6;
+            color: #fff !important;
+        }
+        body.dark .nav-btn.active {
+            background-color: #2563eb;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            gap:10px;
+        }
+        h1 {
+            color: #2d3748;
+            font-size: 22px;
+        }
+        body.dark h1 {
+            color: #f9fafb;
+        }
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .theme-btn, .export-btn {
+            padding: 7px 10px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            margin-top: 0;
+            width: auto;
+        }
+        .theme-btn {
+            background-color: #e5e7eb;
+            color: #2d3748;
+        }
+        body.dark .theme-btn {
+            background-color: #374151;
+            color: #f9fafb;
+        }
+        .export-btn {
+            background-color: #10b981;
+            color: #fff;
+        }
+        .export-btn:hover {
+            background-color: #059669;
+        }
+        /* 统计面板通用样式：首页+查询页共用 */
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+        .stats-item {
+            flex: 1;
+            padding: 15px 8px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .income {
+            background-color: #e8f5e9;
+            color: #22c55e;
+        }
+        body.dark .income {
+            background-color: #166534;
+            color: #4ade80;
+        }
+        .expense {
+            background-color: #fef2f2;
+            color: #ef4444;
+        }
+        body.dark .expense {
+            background-color: #7f1d1d;
+            color: #fca5a5;
+        }
+        .balance {
+            background-color: #eff6ff;
+            color: #3b82f6;
+            border: 1px solid #bfdbfe;
+        }
+        body.dark .balance {
+            background-color: #1e40af;
+            color: #93c5fd;
+            border-color: #3b82f6;
+        }
+        .stats-item h3 {
+            font-size: 13px;
+            margin-bottom: 6px;
+            opacity: 0.8;
+        }
+        .stats-item p {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        /* 查询页单独统计栏样式 */
+        .filter-stats {
+            margin-bottom: 15px;
+        }
+        .filter-stats-item {
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .filter-wrap {
+            margin-bottom: 20px;
+        }
+        .time-filter-box {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .cate-filter-box {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .filter-item {
+            flex: 1;
+            min-width: 140px;
+        }
+        .filter-item label {
+            display: block;
+            font-size: 13px;
+            color: #4b5563;
+            margin-bottom: 5px;
+            width: 100%;
+            font-weight: 500;
+        }
+        body.dark .filter-item label {
+            color: #d1d5db;
+        }
+        .expense-label {
+            color: #ef4444 !important;
+        }
+        body.dark .expense-label {
+            color: #fca5a5 !important;
+        }
+        .income-label {
+            color: #22c55e !important;
+        }
+        body.dark .income-label {
+            color: #4ade80 !important;
+        }
+        .filter-select {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            background-color: #fff;
+            color: #4b5563;
+            cursor: pointer;
+            font-size: 13px;
+            outline: none;
+            appearance: auto;
+        }
+        body.dark .filter-select {
+            background-color: #374151;
+            border-color: #4b5563;
+            color: #f9fafb;
+        }
+        .form-box {
+            border-top: 1px solid #e5e7eb;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 20px 0;
+            margin-bottom: 18px;
+        }
+        body.dark .form-box {
+            border-color: #374151;
+        }
+        .form-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+        .form-group label {
+            width: 70px;
+            font-size: 15px;
+            color: #4b5563;
+        }
+        body.dark .form-group label {
+            color: #d1d5db;
+        }
+        select, input {
+            flex: 1;
+            padding: 9px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 15px;
+            outline: none;
+            background-color: #fff;
+            color: #111827;
+        }
+        body.dark select, body.dark input {
+            background-color: #374151;
+            border-color: #4b5563;
+            color: #f9fafb;
+        }
+        button {
+            width: 100%;
+            padding: 11px;
+            background-color: #3788fb;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        button:hover {
+            background-color: #2563eb;
+        }
+        .bill-list {
+            margin-top: 18px;
+        }
+        .bill-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 8px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        body.dark .bill-item {
+            border-color: #374151;
+        }
+        .bill-item:last-child {
+            border-bottom: none;
+        }
+        .bill-info {
+            flex: 1;
+        }
+        .bill-tag {
+            display: inline-flex;
+            gap: 6px;
+            margin-bottom: 4px;
+        }
+        .bill-type {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .bill-type.income-type {
+            background-color: #e8f5e9;
+            color: #22c55e;
+        }
+        body.dark .bill-type.income-type {
+            background-color: #166534;
+            color: #4ade80;
+        }
+        .bill-type.expense-type {
+            background-color: #fef2f2;
+            color: #ef4444;
+        }
+        body.dark .bill-type.expense-type {
+            background-color: #7f1d1d;
+            color: #fca5a5;
+        }
+        .bill-category {
+            font-size: 11px;
+            color: #6b7280;
+            background-color: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        body.dark .bill-category {
+            background-color: #374151;
+            color: #d1d5db;
+        }
+        .bill-money {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 4px 0;
+        }
+        .bill-money.income-money {
+            color: #22c55e;
+        }
+        .bill-money.expense-money {
+            color: #ef4444;
+        }
+        .bill-desc {
+            font-size: 13px;
+            color: #6b7280;
+            margin: 2px 0;
+        }
+        body.dark .bill-desc {
+            color: #9ca3af;
+        }
+        .bill-time {
+            font-size: 11px;
+            color: #9ca3af;
+        }
+        body.dark .bill-time {
+            color: #6b7280;
+        }
+        .bill-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .edit-btn {
+            color: #f59e0b;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .del-btn {
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        body.dark .edit-btn {
+            color: #fbbf24;
+        }
+        body.dark .del-btn {
+            color: #f87171;
+        }
+        .empty-tip {
+            text-align: center;
+            padding: 25px;
+            color: #9ca3af;
+            font-size: 14px;
+        }
+        body.dark .empty-tip {
+            color: #6b7280;
+        }
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        input, select {
+            font-size: 16px !important;
+            -webkit-text-size-adjust: 100%;
+        }
+        input[type="number"] {
+            -webkit-appearance: none;
+            appearance: none;
+        }
+    </style>
+</head>
+<body class="light">
+    <div class="app-container">
+        <div class="page-nav">
+            <button class="nav-btn active" data-page="page1">💰 记账首页</button>
+            <button class="nav-btn" data-page="page2">📊 支出查询</button>
+            <button class="nav-btn" data-page="page3">📈 收入查询</button>
+        </div>
+
+        <!-- ============= 第一页面【纯记账页】- 只显示当月收支 ============= -->
+        <div class="page active" id="page1">
+            <div class="header">
+                <h1>极简记账本 - 当月收支</h1>
+                <div class="header-actions">
+                    <button class="theme-btn" id="themeBtn">切换深色模式</button>
+                    <button class="export-btn" id="exportBtn">导出全部记录</button>
+                </div>
+            </div>
+            <div class="stats">
+                <div class="stats-item income">
+                    <h3>当月总收入</h3>
+                    <p id="totalIncome">¥ 0.00</p>
+                </div>
+                <div class="stats-item expense">
+                    <h3>当月总支出</h3>
+                    <p id="totalExpense">¥ 0.00</p>
+                </div>
+                <div class="stats-item balance">
+                    <h3>当月余额</h3>
+                    <p id="totalBalance">¥ 0.00</p>
+                </div>
+            </div>
+            <div class="form-box">
+                <div class="form-group">
+                    <label>收支类型</label>
+                    <select id="billType">
+                        <option value="expense">支出</option>
+                        <option value="income">收入</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>收支分类</label>
+                    <!-- 支出分类下拉框：按调整后顺序排列 -->
+                    <select id="billCategory">
+                        <option value="借支">借支</option>
+                        <option value="餐饮">餐饮</option>
+                        <option value="购物">购物</option>
+                        <option value="网购">网购</option>
+                        <option value="油费">油费</option>
+                        <option value="电费">电费</option>
+                        <option value="香烟">香烟</option>
+                        <option value="游戏">游戏</option>
+                        <option value="其他支出">其他支出</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>金额(元)</label>
+                    <input type="number" id="billMoney" placeholder="请输入金额，例如：50.5" step="0.01" min="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>备注说明</label>
+                    <input type="text" id="billDesc" placeholder="例如：借XX钱、收XX还款、早餐...">
+                </div>
+                <button id="submitBtn">添加记账记录</button>
+            </div>
+        </div>
+
+        <!-- ============= 第二页面【支出查询页】- 筛选后总支出统计（含借支） ============= -->
+        <div class="page" id="page2">
+            <div class="header">
+                <h1>支出记录查询 - 精准查往期</h1>
+            </div>
+            <div class="filter-wrap">
+                <div class="time-filter-box">
+                    <div class="filter-item">
+                        <label>账单年度筛选</label>
+                        <select class="filter-select" id="expYearFilter">
+                            <option value="all" selected>所有年份</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label>账单月份筛选</label>
+                        <select class="filter-select" id="expMonthFilter">
+                            <option value="all" selected>所有月份</option>
+                            <option value="1">1月份</option>
+                            <option value="2">2月份</option>
+                            <option value="3">3月份</option>
+                            <option value="4">4月份</option>
+                            <option value="5">5月份</option>
+                            <option value="6">6月份</option>
+                            <option value="7">7月份</option>
+                            <option value="8">8月份</option>
+                            <option value="9">9月份</option>
+                            <option value="10">10月份</option>
+                            <option value="11">11月份</option>
+                            <option value="12">12月份</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="cate-filter-box">
+                    <div class="filter-item">
+                        <label class="expense-label">支出分类筛选</label>
+                        <!-- 支出筛选下拉框：和记账页顺序一致 -->
+                        <select class="filter-select" id="expCateFilter">
+                            <option value="all" selected>全部支出</option>
+                            <option value="借支">借支</option>
+                            <option value="餐饮">餐饮</option>
+                            <option value="购物">购物</option>
+                            <option value="网购">网购</option>
+                            <option value="油费">油费</option>
+                            <option value="电费">电费</option>
+                            <option value="香烟">香烟</option>
+                            <option value="游戏">游戏</option>
+                            <option value="其他支出">其他支出</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filter-stats">
+                    <div class="filter-stats-item expense">
+                        <h3>筛选后总支出</h3>
+                        <p id="expFilterTotal">¥ 0.00</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bill-list" id="expBillList">
+                <div class="empty-tip">暂无支出记录，先去记账吧 ✍️</div>
+            </div>
+        </div>
+
+        <!-- ============= 第三页面【收入查询页】- 筛选后总收入统计（含借支） ============= -->
+        <div class="page" id="page3">
+            <div class="header">
+                <h1>收入记录查询 - 精准查往期</h1>
+            </div>
+            <div class="filter-wrap">
+                <div class="time-filter-box">
+                    <div class="filter-item">
+                        <label>账单年度筛选</label>
+                        <select class="filter-select" id="incYearFilter">
+                            <option value="all" selected>所有年份</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label>账单月份筛选</label>
+                        <select class="filter-select" id="incMonthFilter">
+                            <option value="all" selected>所有月份</option>
+                            <option value="1">1月份</option>
+                            <option value="2">2月份</option>
+                            <option value="3">3月份</option>
+                            <option value="4">4月份</option>
+                            <option value="5">5月份</option>
+                            <option value="6">6月份</option>
+                            <option value="7">7月份</option>
+                            <option value="8">8月份</option>
+                            <option value="9">9月份</option>
+                            <option value="10">10月份</option>
+                            <option value="11">11月份</option>
+                            <option value="12">12月份</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="cate-filter-box">
+                    <div class="filter-item">
+                        <label class="income-label">收入分类筛选</label>
+                        <!-- 收入筛选下拉框：按调整后顺序排列 -->
+                        <select class="filter-select" id="incCateFilter">
+                            <option value="all" selected>全部收入</option>
+                            <option value="借支">借支</option>
+                            <option value="工资">工资</option>
+                            <option value="兼职">兼职</option>
+                            <option value="红包">红包</option>
+                            <option value="理财">理财</option>
+                            <option value="其他收入">其他收入</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filter-stats">
+                    <div class="filter-stats-item income">
+                        <h3>筛选后总收入</h3>
+                        <p id="incFilterTotal">¥ 0.00</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bill-list" id="incBillList">
+                <div class="empty-tip">暂无收入记录，先去记账吧 ✍️</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const billType = document.getElementById('billType');
+        const billCategory = document.getElementById('billCategory');
+        const billMoney = document.getElementById('billMoney');
+        const billDesc = document.getElementById('billDesc');
+        const submitBtn = document.getElementById('submitBtn');
+        const totalIncome = document.getElementById('totalIncome');
+        const totalExpense = document.getElementById('totalExpense');
+        const totalBalance = document.getElementById('totalBalance');
+        const exportBtn = document.getElementById('exportBtn');
+        const navBtns = document.querySelectorAll('.nav-btn');
+        const pages = document.querySelectorAll('.page');
+        // 支出查询相关
+        const expYearFilter = document.getElementById('expYearFilter');
+        const expMonthFilter = document.getElementById('expMonthFilter');
+        const expCateFilter = document.getElementById('expCateFilter');
+        const expBillList = document.getElementById('expBillList');
+        const expFilterTotal = document.getElementById('expFilterTotal');
+        // 收入查询相关
+        const incYearFilter = document.getElementById('incYearFilter');
+        const incMonthFilter = document.getElementById('incMonthFilter');
+        const incCateFilter = document.getElementById('incCateFilter');
+        const incBillList = document.getElementById('incBillList');
+        const incFilterTotal = document.getElementById('incFilterTotal');
+        const themeBtn = document.getElementById('themeBtn');
+
+        let editId = null;
+        const STORAGE_KEY = 'bill_record_list';
+        const THEME_KEY = 'bill_app_theme';
+        const nowDate = new Date();
+        const currentYear = nowDate.getFullYear();
+        const currentMonth = nowDate.getMonth() + 1; // 当前月份（1-12）
+
+        // ========== 核心修改：调整收支分类的顺序 ==========
+        const categoryMap = {
+            expense: [
+                {name: '借支', value: '借支'},
+                {name: '餐饮', value: '餐饮'},
+                {name: '购物', value: '购物'},
+                {name: '网购', value: '网购'},
+                {name: '油费', value: '油费'},
+                {name: '电费', value: '电费'},
+                {name: '香烟', value: '香烟'},
+                {name: '游戏', value: '游戏'},
+                {name: '其他支出', value: '其他支出'}
+            ],
+            income: [
+                {name: '借支', value: '借支'},
+                {name: '工资', value: '工资'},
+                {name: '兼职', value: '兼职'},
+                {name: '红包', value: '红包'},
+                {name: '理财', value: '理财'},
+                {name: '其他收入', value: '其他收入'}
+            ]
+        };
+
+        // ========== 初始化 ==========
+        initTheme();
+        bindCategoryChange();
+        initAllYearOptions();
+        bindAllFilterEvents();
+        bindPageNav();
+        renderAllPageData();
+        calcCurrentMonthTotal(); // 首页计算当月数据
+
+        // ========== 事件绑定 ==========
+        submitBtn.addEventListener('click', handleSubmit);
+        expBillList.addEventListener('click', handleBillAction);
+        incBillList.addEventListener('click', handleBillAction);
+        themeBtn.addEventListener('click', toggleTheme);
+        exportBtn.addEventListener('click', exportBillData);
+
+        // ========== 核心功能函数 ==========
+        function bindCategoryChange() {
+            billType.addEventListener('change', function() {
+                const type = this.value;
+                const categorys = categoryMap[type];
+                let html = '';
+                categorys.forEach(item => html += `<option value="${item.value}">${item.name}</option>`);
+                billCategory.innerHTML = html;
+            });
+        }
+        function initTheme() {
+            const theme = localStorage.getItem(THEME_KEY) || 'light';
+            document.body.className = theme;
+            themeBtn.textContent = theme === 'light' ? '切换深色模式' : '切换浅色模式';
+        }
+        function toggleTheme() {
+            const newTheme = document.body.className === 'light' ? 'dark' : 'light';
+            document.body.className = newTheme;
+            localStorage.setItem(THEME_KEY, newTheme);
+            themeBtn.textContent = newTheme === 'light' ? '切换深色模式' : '切换浅色模式';
+        }
+        function bindPageNav() {
+            navBtns.forEach(btn => btn.addEventListener('click', function() {
+                const pageId = this.dataset.page;
+                navBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                pages.forEach(p => p.classList.remove('active'));
+                document.getElementById(pageId).classList.add('active');
+                renderAllPageData();
+            }));
+        }
+        function initAllYearOptions() {
+            const billData = getBillData();
+            const yearSet = new Set();
+            billData.forEach(item => yearSet.add(new Date(item.time).getFullYear()));
+            yearSet.add(currentYear);
+            const yearArr = Array.from(yearSet).sort((a,b)=>b-a);
+            let yearHtml = '<option value="all" selected>所有年份</option>';
+            yearArr.forEach(year => yearHtml += `<option value="${year}">${year}年</option>`);
+            expYearFilter.innerHTML = yearHtml;
+            incYearFilter.innerHTML = yearHtml;
+        }
+        function bindAllFilterEvents() {
+            // 支出筛选事件
+            expYearFilter.addEventListener('change', () => renderExpPage());
+            expMonthFilter.addEventListener('change', () => renderExpPage());
+            expCateFilter.addEventListener('change', () => renderExpPage());
+            // 收入筛选事件
+            incYearFilter.addEventListener('change', () => renderIncPage());
+            incMonthFilter.addEventListener('change', () => renderIncPage());
+            incCateFilter.addEventListener('change', () => renderIncPage());
+        }
+
+        // ========== 首页只计算当月收支 ==========
+        function calcCurrentMonthTotal() {
+            const billData = getBillData();
+            let income = 0, expense = 0;
+            billData.forEach(item => {
+                const billDate = new Date(item.time);
+                // 只统计当前年份+当前月份的数据
+                if (billDate.getFullYear() === currentYear && billDate.getMonth() + 1 === currentMonth) {
+                    if (item.type === 'income') {
+                        income += item.money;
+                    } else {
+                        expense += Math.abs(item.money);
+                    }
+                }
+            });
+            const balance = income - expense;
+            totalIncome.textContent = `¥ ${income.toFixed(2)}`;
+            totalExpense.textContent = `¥ ${expense.toFixed(2)}`;
+            totalBalance.textContent = `¥ ${balance.toFixed(2)}`;
+        }
+
+        // ========== 支出查询页 - 筛选后数据+总支出统计（含借支） ==========
+        function getFilteredExpData() {
+            const allData = getBillData();
+            const year = expYearFilter.value;
+            const month = expMonthFilter.value;
+            const cate = expCateFilter.value;
+            return allData.filter(item => {
+                if(item.type !== 'expense') return false;
+                const billDate = new Date(item.time);
+                const billYear = billDate.getFullYear();
+                const billMonth = billDate.getMonth() + 1;
+                const yearMatch = year === 'all' || billYear === parseInt(year);
+                const monthMatch = month === 'all' || billMonth === parseInt(month);
+                const cateMatch = cate === 'all' || item.category === cate;
+                return yearMatch && monthMatch && cateMatch;
+            });
+        }
+        function renderExpPage() {
+            const expData = getFilteredExpData();
+            // 计算筛选后总支出
+            let total = 0;
+            expData.forEach(item => total += Math.abs(item.money));
+            expFilterTotal.textContent = `¥ ${total.toFixed(2)}`;
+
+            // 渲染账单列表
+            if (expData.length === 0) {
+                const yearTxt = expYearFilter.value === 'all' ? '所有年份' : `${expYearFilter.value}年`;
+                const monthTxt = expMonthFilter.value === 'all' ? '所有月份' : `${expMonthFilter.value}月份`;
+                const cateTxt = expCateFilter.value === 'all' ? '全部支出' : `【${expCateFilter.value}】`;
+                expBillList.innerHTML = `<div class="empty-tip">暂无${yearTxt}${monthTxt}的${cateTxt}记录 ✍️</div>`;
+                return;
+            }
+            let html = '';
+            expData.forEach(item => {
+                html += `
+                    <div class="bill-item" data-id="${item.id}">
+                        <div class="bill-info">
+                            <div class="bill-tag">
+                                <span class="bill-type expense-type">支出</span>
+                                <span class="bill-category">${item.category}</span>
+                            </div>
+                            <div class="bill-money expense-money">¥ ${Math.abs(item.money).toFixed(2)}</div>
+                            <div class="bill-desc">${item.desc}</div>
+                            <div class="bill-time">${item.time}</div>
+                        </div>
+                        <div class="bill-actions">
+                            <span class="edit-btn">✏️ 编辑</span>
+                            <span class="del-btn">🗑️ 删除</span>
+                        </div>
+                    </div>
+                `;
+            });
+            expBillList.innerHTML = html;
+        }
+
+        // ========== 收入查询页 - 筛选后数据+总收入统计（含借支） ==========
+        function getFilteredIncData() {
+            const allData = getBillData();
+            const year = incYearFilter.value;
+            const month = incMonthFilter.value;
+            const cate = incCateFilter.value;
+            return allData.filter(item => {
+                if(item.type !== 'income') return false;
+                const billDate = new Date(item.time);
+                const billYear = billDate.getFullYear();
+                const billMonth = billDate.getMonth() + 1;
+                const yearMatch = year === 'all' || billYear === parseInt(year);
+                const monthMatch = month === 'all' || billMonth === parseInt(month);
+                const cateMatch = cate === 'all' || item.category === cate;
+                return yearMatch && monthMatch && cateMatch;
+            });
+        }
+        function renderIncPage() {
+            const incData = getFilteredIncData();
+            // 计算筛选后总收入
+            let total = 0;
+            incData.forEach(item => total += item.money);
+            incFilterTotal.textContent = `¥ ${total.toFixed(2)}`;
+
+            // 渲染账单列表
+            if (incData.length === 0) {
+                const yearTxt = incYearFilter.value === 'all' ? '所有年份' : `${incYearFilter.value}年`;
+                const monthTxt = incMonthFilter.value === 'all' ? '所有月份' : `${incMonthFilter.value}月份`;
+                const cateTxt = incCateFilter.value === 'all' ? '全部收入' : `【${incCateFilter.value}】`;
+                incBillList.innerHTML = `<div class="empty-tip">暂无${yearTxt}${monthTxt}的${cateTxt}记录 ✍️</div>`;
+                return;
+            }
+            let html = '';
+            incData.forEach(item => {
+                html += `
+                    <div class="bill-item" data-id="${item.id}">
+                        <div class="bill-info">
+                            <div class="bill-tag">
+                                <span class="bill-type income-type">收入</span>
+                                <span class="bill-category">${item.category}</span>
+                            </div>
+                            <div class="bill-money income-money">¥ ${Math.abs(item.money).toFixed(2)}</div>
+                            <div class="bill-desc">${item.desc}</div>
+                            <div class="bill-time">${item.time}</div>
+                        </div>
+                        <div class="bill-actions">
+                            <span class="edit-btn">✏️ 编辑</span>
+                            <span class="del-btn">🗑️ 删除</span>
+                        </div>
+                    </div>
+                `;
+            });
+            incBillList.innerHTML = html;
+        }
+
+        function renderAllPageData() {
+            initAllYearOptions();
+            renderExpPage();
+            renderIncPage();
+        }
+        function exportBillData() {
+            const billData = getBillData();
+            if (billData.length === 0) {
+                alert('暂无记账记录，无需导出！');
+                return;
+            }
+            let csvContent = '收支类型,收支分类,金额(元),备注说明,记账时间\n';
+            billData.forEach(item => {
+                const type = item.type === 'income' ? '收入' : '支出';
+                const money = Math.abs(item.money).toFixed(2);
+                const category = item.category || (item.type === 'income' ? '其他收入' : '其他支出');
+                const desc = item.desc.replace(/,/g, '，') || '';
+                const time = item.time;
+                csvContent += `${type},${category},${money},${desc},${time}\n`;
+            });
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `记账记录_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`;
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            alert('导出成功！文件已下载到本地～');
+        }
+        function getBillData() {
+            return localStorage.getItem(STORAGE_KEY) ? JSON.parse(localStorage.getItem(STORAGE_KEY)) : [];
+        }
+        function saveBillData(list) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+            renderAllPageData();
+            calcCurrentMonthTotal(); // 新增/修改后更新当月统计
+        }
+        function handleSubmit() {
+            const type = billType.value;
+            const category = billCategory.value;
+            const money = parseFloat(billMoney.value);
+            const desc = billDesc.value.trim() || (type === 'income' ? '收入' : '支出');
+            if (!money || money <= 0) {
+                alert('请输入有效的金额！');
+                billMoney.focus();
+                return;
+            }
+            const billData = getBillData();
+            if (editId) {
+                const editIndex = billData.findIndex(item => item.id === editId);
+                billData[editIndex] = {...billData[editIndex], type, category, money: type === 'income' ? money : -money, desc};
+                submitBtn.textContent = '添加记账记录';
+                editId = null;
+            } else {
+                billData.unshift({id: Date.now(), type, category, money: type === 'income' ? money : -money, desc, time: new Date().toLocaleString('zh-CN')});
+            }
+            saveBillData(billData);
+            resetForm();
+        }
+        function handleBillAction(e) {
+            const target = e.target;
+            const billItem = target.closest('.bill-item');
+            if(!billItem) return;
+            const id = parseInt(billItem.dataset.id);
+            const billData = getBillData();
+            const targetItem = billData.find(item => item.id === id);
+            if (target.classList.contains('del-btn')) {
+                if (confirm('确定要删除这条记账记录吗？')) saveBillData(billData.filter(item => item.id !== id));
+            } else if (target.classList.contains('edit-btn')) {
+                navBtns.forEach(b => b.classList.remove('active'));
+                pages.forEach(p => p.classList.remove('active'));
+                document.querySelector('[data-page="page1"]').classList.add('active');
+                document.getElementById('page1').classList.add('active');
+                editId = id;
+                billType.value = targetItem.type;
+                billType.dispatchEvent(new Event('change'));
+                setTimeout(() => billCategory.value = targetItem.category, 10);
+                billMoney.value = Math.abs(targetItem.money);
+                billDesc.value = targetItem.desc;
+                submitBtn.textContent = '确认修改记录';
+                window.scrollTo(0, 0);
+            }
+        }
+        function resetForm() {
+            billType.value = 'expense';
+            billType.dispatchEvent(new Event('change'));
+            billMoney.value = '';
+            billDesc.value = '';
+            billMoney.focus();
+        }
+    </script>
+</body>
+</html>
